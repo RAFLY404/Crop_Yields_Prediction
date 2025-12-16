@@ -1,56 +1,52 @@
-# -----------------------------
-# Base Image
-# -----------------------------
-FROM node:20
+# ===============================
+# Base image with Python 3.13
+# ===============================
+FROM python:3.13-slim
 
-# -----------------------------
-# Install Python + venv
-# -----------------------------
+# ===============================
+# Install system dependencies
+# ===============================
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-venv \
-    python3-pip \
+    curl \
+    nodejs \
+    npm \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# -----------------------------
-# Create Python Virtual Env
-# -----------------------------
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Upgrade pip inside venv
-RUN pip install --upgrade pip
-
-# -----------------------------
-# Set Working Directory
-# -----------------------------
+# ===============================
+# Set working directory
+# ===============================
 WORKDIR /app
 
-# -----------------------------
-# Install Node Dependencies
-# -----------------------------
+# ===============================
+# Copy Node files and install deps
+# ===============================
 COPY package*.json ./
 RUN npm install
 
-# -----------------------------
-# Install Python Dependencies
-# -----------------------------
+# ===============================
+# Copy Python requirements
+# ===============================
 COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-# -----------------------------
-# Copy Application Code
-# -----------------------------
+# ===============================
+# Install Python dependencies
+# ===============================
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# ===============================
+# Copy application code
+# ===============================
 COPY . .
 
-# -----------------------------
-# Expose Port
-# -----------------------------
+# ===============================
+# Expose port
+# ===============================
 ENV PORT=5000
 EXPOSE 5000
 
-# -----------------------------
-# Start Node App
-# -----------------------------
+# ===============================
+# Start Express server
+# ===============================
 CMD ["npm", "start"]
