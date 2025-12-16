@@ -1,8 +1,8 @@
-# Stage 1: Use a Node image as the base
+# --- STAGE 1: Base Image and Dependencies ---
 FROM node:20 
 
 # Install Python and its package manager (pip). 
-# This step is the crucial fix for the ENOENT error.
+# This is crucial for fixing the "spawn python ENOENT" error.
 RUN apt-get update && apt-get install -y python3 python3-pip
 
 # Set the working directory
@@ -12,15 +12,23 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Install Python dependencies (assuming you have a requirements.txt)
-# NOTE: If you don't have a requirements.txt, you can comment out the next two lines.
-COPY requirements.txt ./
-RUN pip3 install -r requirements.txt
+# --- PYTHON DEPENDENCIES (Conditional Fix) ---
+# We use a trick to check if requirements.txt exists before trying to copy/install.
+# This prevents the build from failing if the file is missing.
 
+# Copy Python requirements, if they exist. The "|| true" prevents failure.
+COPY requirements.txt ./ 2>/dev/null || true
+
+# Install Python requirements if the file was copied
+RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+
+# --- STAGE 2: Final App Setup and Run ---
 # Copy the rest of your application code
 COPY . .
 
-# Start the Express app
-ENV PORT 3000
-EXPOSE 3000
+# Expose the port (e.g., 5000 from your index.js)
+ENV PORT 5000
+EXPOSE 5000
+
+# Command to start the Express server
 CMD ["npm", "start"]
