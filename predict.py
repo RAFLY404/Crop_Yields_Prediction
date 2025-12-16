@@ -4,66 +4,58 @@ import json
 import joblib
 import requests
 import pandas as pd
-import traceback
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "Model")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-FILES = {
-    "model": ("crop_yield_model.joblib", os.environ.get("MODEL_URL")),
-    "encoders": ("encoders.joblib", os.environ.get("ENCODER_URL")),
-    "columns": ("columns.joblib", os.environ.get("COLUMNS_URL")),
-}
+MODEL_PATH = os.path.join(MODEL_DIR, "crop_yield_model.joblib")
+ENCODER_PATH = os.path.join(MODEL_DIR, "encoders.joblib")
+COLUMNS_PATH = os.path.join(MODEL_DIR, "columns.joblib")
 
-def download_file(filename, url):
-    path = os.path.join(MODEL_DIR, filename)
+MODEL_URL = os.environ.get("MODEL_URL")
+ENCODER_URL = os.environ.get("ENCODER_URL")
+COLUMNS_URL = os.environ.get("COLUMNS_URL")
+
+_model = None
+_encoders = None
+_columns = None
+
+def download(path, url):
     if os.path.exists(path):
-        return path
-    if not url:
-        raise RuntimeError(f"URL not set for {filename}")
+        return
     r = requests.get(url, stream=True, timeout=120)
     r.raise_for_status()
     with open(path, "wb") as f:
-        for chunk in r.iter_content(8192):
-            f.write(chunk)
-    return path
+        for c in r.iter_content(8192):
+            f.write(c)
 
-try:
-    model_path = download_file(*FILES["model"])
-    encoders_path = download_file(*FILES["encoders"])
-    columns_path = download_file(*FILES["columns"])
+def load_model():
+    global _model, _encoders, _columns
 
-    model = joblib.load(model_path)
-    encoders = joblib.load(encoders_path)
-    model_columns = joblib.load(columns_path)
-except Exception as e:
-    print(json.dumps({
-        "error": "Failed to prepare model",
-        "exception": str(e),
-        "traceback": traceback.format_exc()
-    }))
-    sys.exit(1)
+    if _model is not None:
+        return
 
-def predict_yield(data_dict):
-    df = pd.DataFrame([data_dict])
-    for col, encoder in encoders.items():
-        if col in df.columns:
-            df[col] = encoder.transform(df[col].astype(str))
+    download(MODEL_PATH, MODEL_URL)
+    download(ENCODER_PATH, ENCODER_URL)
+    download(COLUMNS_PATH, COLUMNS_URL)
+
+    _model = joblib.load(MODEL_PATH)
+    _encoders = joblib.load(ENCODER_PATH)
+    _columns = joblib.load(COLUMNS_PATH)
+
+def predict(data):
+    load_model()
+    df = pd.DataFrame([data])
+    for col, enc in _encoders.items():
+        if col in df:
+            df[col] = enc.transform(df[col].astype(str))
         else:
             df[col] = 0
-    df = df.reindex(columns=model_columns, fill_value=0)
-    return float(model.predict(df)[0])
+    df = df.reindex(columns=_columns, fill_value=0)
+    return float(_model.predict(df)[0])
 
 if __name__ == "__main__":
-    try:
-        data = json.loads(sys.stdin.read())
-        result = predict_yield(data)
-        print(json.dumps({"prediction": result}))
-    except Exception as e:
-        print(json.dumps({
-            "error": "Prediction failed",
-            "exception": str(e),
-            "traceback": traceback.format_exc()
-        }))
-        sys.exit(1)
+    data = json.loads(sys.stdin.read())
+    result = predict(data)
+    print(json.dumps({"prediction": result}))
