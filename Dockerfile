@@ -1,34 +1,56 @@
-# --- STAGE 1: Base Image and Dependencies ---
-FROM node:20 
+# -----------------------------
+# Base Image
+# -----------------------------
+FROM node:20
 
-# Install Python and its package manager (pip). 
-# This is crucial for fixing the "spawn python ENOENT" error.
-RUN apt-get update && apt-get install -y python3 python3-pip
+# -----------------------------
+# Install Python + venv
+# -----------------------------
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-venv \
+    python3-pip \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
+# -----------------------------
+# Create Python Virtual Env
+# -----------------------------
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Upgrade pip inside venv
+RUN pip install --upgrade pip
+
+# -----------------------------
+# Set Working Directory
+# -----------------------------
 WORKDIR /app
 
-# Install Node dependencies
+# -----------------------------
+# Install Node Dependencies
+# -----------------------------
 COPY package*.json ./
 RUN npm install
 
-# --- PYTHON DEPENDENCIES (Conditional Fix) ---
-# We use a trick to check if requirements.txt exists before trying to copy/install.
-# This prevents the build from failing if the file is missing.
+# -----------------------------
+# Install Python Dependencies
+# -----------------------------
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-# Copy Python requirements, if they exist. The "|| true" prevents failure.
-COPY requirements.txt ./ 2>/dev/null || true
-
-# Install Python requirements if the file was copied
-RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-
-# --- STAGE 2: Final App Setup and Run ---
-# Copy the rest of your application code
+# -----------------------------
+# Copy Application Code
+# -----------------------------
 COPY . .
 
-# Expose the port (e.g., 5000 from your index.js)
-ENV PORT 5000
+# -----------------------------
+# Expose Port
+# -----------------------------
+ENV PORT=5000
 EXPOSE 5000
 
-# Command to start the Express server
+# -----------------------------
+# Start Node App
+# -----------------------------
 CMD ["npm", "start"]
