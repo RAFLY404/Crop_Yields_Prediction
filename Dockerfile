@@ -17,7 +17,8 @@ RUN npm install
 # This prevents the build from failing if the file is missing.
 
 # Copy Python requirements, if they exist. The "|| true" prevents failure.
-COPY requirements.txt ./ 2>/dev/null || true
+COPY requirements.txt ./
+RUN pip3 install -r requirements.txt
 
 # Install Python requirements if the file was copied
 RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
