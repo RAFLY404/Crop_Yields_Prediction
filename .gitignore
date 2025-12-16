@@ -1,0 +1,39 @@
+# ------------------------------------
+# 1. DEPENDENCIES / BUILD ARTIFACTS
+# ------------------------------------
+
+# Node.js dependencies
+/node_modules
+
+# Build output directories
+/dist
+/build
+/out
+
+# ------------------------------------
+# 2. SENSITIVE DATA & CONFIGURATION
+# ------------------------------------
+
+# Environment variables (Crucial for security!)
+.env
+.env.*
+
+# Conda environment files (often unnecessary to commit)
+.conda
+.venv
+
+# ------------------------------------
+# 3. LOGS, CACHE, AND OS FILES
+# ------------------------------------
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
