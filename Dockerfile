@@ -18,7 +18,6 @@ RUN npm install
 
 # Copy Python requirements, if they exist. The "|| true" prevents failure.
 COPY requirements.txt ./
-RUN pip3 install -r requirements.txt
 
 # Install Python requirements if the file was copied
 RUN if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
