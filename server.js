@@ -23,7 +23,7 @@ async function savePrediction(prediction, area, items, year) {
 }
 
 app.post("/predict", (req, res) => {
-  const python = spawn("python", ["predict.py"]);
+  const python = spawn("python3", ["predict.py"]);
 
   let output = "";
   let errorOutput = "";
